@@ -65,9 +65,10 @@
 #endif
 
 int recv_buffer[NUM_MODULES];
+int _NUM_MODULES = ceil(NUM_MODULES/4.0) * 4;
 
 #if NEOPIXEL_DEBUGGING_ENABLED
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_MODULES, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(_NUM_MODULES, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 uint32_t color_green = strip.Color(0, 30, 0);
 uint32_t color_red = strip.Color(100, 0, 0);
 uint32_t color_purple = strip.Color(15, 0, 15);
@@ -111,6 +112,7 @@ void setup() {
 
 #if NEOPIXEL_DEBUGGING_ENABLED
   strip.begin();
+  strip.clear();
   strip.show();
 
   // Pulse neopixels for fun

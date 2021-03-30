@@ -57,8 +57,12 @@
 #ifdef ESP32
   #include "driver/spi_master.h"
   #include "driver/spi_slave.h"
-
+  
+  // For chainlink driver
   #define LATCH_PIN (25)
+  // For classic board
+  #define OUT_LATCH_PIN (25)
+  #define IN_LATCH_PIN (26)
 
   // Optional - uncomment if connecting the output enable pin of the 74HC595 shift registers
   // to the ESP32. You can otherwise hard-wire the output enable pins to always be enabled.
@@ -70,7 +74,11 @@
 
   // Note: You may need to slow this down to 3MHz if you're using a classic driver board;
   // the MIC5842 only officially supports up to 3.3MHz
-  #define SPI_CLOCK 8000000
+  #ifdef CLASSIC_BOARD
+    #define SPI_CLOCK 3000000
+  #else
+    #define SPI_CLOCK 8000000
+  #endif
 
   #define BUFFER_ATTRS WORD_ALIGNED_ATTR
 
@@ -113,13 +121,25 @@ void* operator new(__attribute__((unused)) size_t size, void* ptr) {
 #endif
 
 #ifdef ESP32
-void reset_latch(spi_transaction_t *trans) {
-    digitalWrite(LATCH_PIN, LOW);
-}
+  #ifdef CLASSIC_BOARD
+  void out_latch(spi_transaction_t *trans) {
+      digitalWrite(OUT_LATCH_PIN, HIGH);
+      digitalWrite(OUT_LATCH_PIN, LOW);
+  }
 
-void latch_registers(spi_transaction_t *trans) {
-    digitalWrite(LATCH_PIN, HIGH);
-}
+  void in_latch(spi_transaction_t *trans) {
+      digitalWrite(IN_LATCH_PIN, LOW);
+      digitalWrite(IN_LATCH_PIN, HIGH);
+  }
+  #else
+  void reset_latch(spi_transaction_t *trans) {
+      digitalWrite(LATCH_PIN, LOW);
+  }
+
+  void latch_registers(spi_transaction_t *trans) {
+      digitalWrite(LATCH_PIN, HIGH);
+  }
+  #endif
 #endif
 
 // Static buffer for SplitflapModules (initialized at runtime)
@@ -175,7 +195,44 @@ inline void initialize_modules() {
   };
   ret=spi_bus_initialize(SPI_HOST, &tx_bus_config, DMA_CHANNEL);
   ESP_ERROR_CHECK(ret);
+  
+  #ifdef CLASSIC_BOARD
+  spi_device_interface_config_t tx_device_config = {
+      .command_bits=0,
+      .address_bits=0,
+      .dummy_bits=0,
+      .mode=3,
+      .duty_cycle_pos=0,
+      .cs_ena_pretrans=0,
+      .cs_ena_posttrans=0,
+      .clock_speed_hz=SPI_CLOCK,
+      .input_delay_ns=0,
+      .spics_io_num=-1,
+      .flags = 0,
+      .queue_size=1,
+      .pre_cb=NULL,
+      .post_cb=&out_latch,
+  };
+  ret=spi_bus_add_device(SPI_HOST, &tx_device_config, &spi_tx);
+  ESP_ERROR_CHECK(ret);
 
+  spi_device_interface_config_t rx_device_config = {
+      .command_bits=0,
+      .address_bits=0,
+      .dummy_bits=0,
+      .mode=2,
+      .duty_cycle_pos=0,
+      .cs_ena_pretrans=0,
+      .cs_ena_posttrans=0,
+      .clock_speed_hz=SPI_CLOCK,
+      .input_delay_ns=0,
+      .spics_io_num=-1,
+      .flags = SPI_DEVICE_HALFDUPLEX,
+      .queue_size=1,
+      .pre_cb=&in_latch,
+      .post_cb=NULL,
+  };
+  #else
   spi_device_interface_config_t tx_device_config = {
       .command_bits=0,
       .address_bits=0,
@@ -211,6 +268,10 @@ inline void initialize_modules() {
       .pre_cb=&latch_registers,
       .post_cb=&reset_latch,
   };
+  ret=spi_bus_add_device(SPI_HOST, &rx_device_config, &spi_rx);
+  ESP_ERROR_CHECK(ret);
+  #endif
+  
   ret=spi_bus_add_device(SPI_HOST, &rx_device_config, &spi_rx);
   ESP_ERROR_CHECK(ret);
 

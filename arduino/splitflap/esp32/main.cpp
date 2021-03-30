@@ -20,6 +20,11 @@
 
 #include "config.h"
 
+#ifdef NEOPIXEL_TURN_OFF
+#include <Adafruit_NeoPixel.h>
+#include <math.h>
+#endif
+
 #include "display_task.h"
 #include "splitflap_task.h"
 
@@ -31,8 +36,20 @@ DisplayTask displayTask(splitflapTask, 0);
 MQTTTask mqttTask(splitflapTask, 0);
 #endif
 
+#ifdef NEOPIXEL_TURN_OFF
+int recv_buffer[NUM_MODULES];
+int _NUM_MODULES = ceil(NUM_MODULES/4.0) * 4;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(_NUM_MODULES, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+#endif
+
 void setup() {
   Serial.begin(MONITOR_SPEED);
+
+  #ifdef NEOPIXEL_TURN_OFF
+  strip.begin();
+  strip.clear();
+  strip.show();
+  #endif
 
   splitflapTask.begin();
 
