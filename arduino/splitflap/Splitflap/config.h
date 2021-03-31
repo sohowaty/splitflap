@@ -110,15 +110,14 @@ const uint8_t flaps[NUM_FLAPS] = {
  *      SDA: 20
  *      SCL: 21
  *
- * ESP32 - SPI IO (Shift Register) - Up to 120+ modules:
- *     5  CS            (out) (debug only)
- *     12 Motor latch   (out)
- *     13 neopixel      (out)
- *     18 CLK           (out)
- *     19 MISO          (in)
- *     23 MOSI          (out)
- *     27 Sensor latch  (out)
- *     32 Output enable (out)
+ * ESP32 - CLASSIC BOARD - SPI IO (Shift Register) - Up to 120+ modules:
+ *     5  CS              (not used)  (out) (debug only)
+ *     13 neopixel        (D6)        (out)
+ *     33 CLK             (SCL)       (out)
+ *     22 MISO            (SDO)       (in)
+ *     32 MOSI            (MDI)       (out)
+ *     26 Sensor latch    (SL)        (out)
+ *     25 Motor latch     (ML)        (out)
  *
  */
 
